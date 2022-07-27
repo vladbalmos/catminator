@@ -6,24 +6,17 @@
 
 #include <stdio.h>
 #include "pico/stdlib.h"
+#include "motor.h"
 
 const uint TRIGGER_BTN_PIN = 16;
 const uint LED_PIN = 17;
-const uint CANCEL_TRIGGER_BTN_PIN = 18;
+const uint CANCEL_TRIGGER_BTN_PIN = 20;
 
 const uint32_t MOTOR_DRIVE_DELAY = 2000;
 const uint DEBOUNCE_DELAY = 250;
 
 volatile uint32_t time;
 volatile alarm_id_t motor_drive_alarm;
-volatile bool motor_drive_scheduled = false;
-
-int64_t drive_motor(alarm_id_t id, void *user_data) {
-    gpio_put(LED_PIN, 1);
-    motor_drive_scheduled = false;
-    printf("Motor was driven\n");
-    return 0;
-}
 
 bool valid_trigger() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
@@ -42,30 +35,17 @@ void schedule_motor_drive() {
         return;
     }
 
-    if (motor_drive_scheduled) {
-        printf("Motor already scheduled\n");
-        return;
-    }
-
     printf("Scheduling motor drive\n");
-    motor_drive_scheduled = true;
-    motor_drive_alarm = add_alarm_in_ms(MOTOR_DRIVE_DELAY, drive_motor, NULL, false);
-
-    if (motor_drive_alarm == -1) {
-        // TODO: flash error LED
-        printf("No alarm slot available for driving the motor");
-    }
+    motor_schedule_drive(MOTOR_DRIVE_DELAY);
 }
 
 void cancel_motor_drive() {
-    if (!valid_trigger() || !motor_drive_alarm) {
+    if (!valid_trigger()) {
         return;
     }
 
     printf("Cancel motor drive %d\n", motor_drive_alarm);
-    cancel_alarm(motor_drive_alarm);
-    motor_drive_alarm = 0;
-    motor_drive_scheduled = false;
+    motor_cancel_drive();
 }
 
 void gpio_callback(uint gpio, uint32_t events) {
@@ -90,11 +70,9 @@ int main() {
 
     gpio_init(TRIGGER_BTN_PIN);
     gpio_set_dir(TRIGGER_BTN_PIN, GPIO_IN);
-    gpio_pull_down(TRIGGER_BTN_PIN);
 
     gpio_init(CANCEL_TRIGGER_BTN_PIN);
     gpio_set_dir(CANCEL_TRIGGER_BTN_PIN, GPIO_IN);
-    gpio_pull_down(CANCEL_TRIGGER_BTN_PIN);
 
     gpio_set_irq_enabled_with_callback(TRIGGER_BTN_PIN, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
     gpio_set_irq_enabled(CANCEL_TRIGGER_BTN_PIN, GPIO_IRQ_EDGE_RISE, true);
