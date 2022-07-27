@@ -9,22 +9,32 @@ const uint DEFAULT_LED_PIN = 19;
 volatile bool motor_drive_scheduled = false;
 volatile alarm_id_t motor_drive_up_alarm = 0;
 
-/*typedef struct {*/
-    /*uint pin;*/
-/*} motor_state;*/
+typedef struct {
+    uint pin;
+} motor_state;
 
 int64_t stop_drive_motor(alarm_id_t id, void *user_data) {
+    motor_state *state = (motor_state *) user_data;
+    gpio_put(state->pin, 0);
+
+    printf("%d\n", state->pin);
+    if (state->pin == MOTOR_UP_PIN) {
+        printf("Starting new alarm for down\n");
+        state->pin = MOTOR_DOWN_PIN;
+        add_alarm_in_ms(500, start_drive_motor, (void *)state, false);
+        return 0;
+    }
+    free(state);
+    state = NULL;
+    motor_drive_scheduled = false;
     return 0;
 }
 
 int64_t start_drive_motor(alarm_id_t id, void *user_data) {
-    /*motor_state *state;*/
-    /*state = (motor_state *) user_data;*/
-    /*gpio_put(state->pin, 1);*/
-    gpio_put(MOTOR_UP_PIN, 1);
-    printf("Driving motor up\n");
+    motor_state *state = (motor_state *) user_data;
+    gpio_put(state->pin, 1);
+    printf("Driving %d\n", state->pin);
     add_alarm_in_ms(1000, stop_drive_motor, user_data, false);
-    motor_drive_scheduled = false;
     return 0;
 }
 
@@ -38,11 +48,11 @@ void motor_schedule_drive(uint32_t delay) {
         return;
     }
 
-    /*motor_state state;*/
-    /*state.pin = MOTOR_UP_PIN;*/
+    motor_state *state = malloc(sizeof(motor_state));
+    state->pin = MOTOR_UP_PIN;
     motor_drive_scheduled = true;
-    /*motor_drive_up_alarm = add_alarm_in_ms(delay, start_drive_motor, (void *)&state, false);*/
-    motor_drive_up_alarm = add_alarm_in_ms(delay, start_drive_motor, NULL, false);
+    motor_drive_up_alarm = add_alarm_in_ms(delay, start_drive_motor, (void *)state, false);
+    /*motor_drive_up_alarm = add_alarm_in_ms(delay, start_drive_motor, NULL, false);*/
 
     if (motor_drive_up_alarm == -1) {
         // TODO: flash error LED
@@ -52,7 +62,6 @@ void motor_schedule_drive(uint32_t delay) {
 }
 
 void motor_cancel_drive() {
-    printf("Motor drive alarm %d\n", motor_drive_up_alarm);
     if (!motor_drive_up_alarm) {
         return;
     }

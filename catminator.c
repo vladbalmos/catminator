@@ -44,7 +44,7 @@ void cancel_motor_drive() {
         return;
     }
 
-    printf("Cancel motor drive %d\n", motor_drive_alarm);
+    printf("Cancel motor drive\n");
     motor_cancel_drive();
 }
 
@@ -67,6 +67,10 @@ int main() {
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
     gpio_set_drive_strength(LED_PIN, GPIO_DRIVE_STRENGTH_2MA);
+
+    gpio_init(LED_PIN + 1);
+    gpio_set_dir(LED_PIN + 1, GPIO_OUT);
+    gpio_set_drive_strength(LED_PIN + 1, GPIO_DRIVE_STRENGTH_2MA);
 
     gpio_init(TRIGGER_BTN_PIN);
     gpio_set_dir(TRIGGER_BTN_PIN, GPIO_IN);
