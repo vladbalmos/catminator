@@ -16,8 +16,8 @@ const uint32_t MOTOR_DRIVE_DELAY = 2000;
 const uint DEBOUNCE_DELAY = 250;
 
 volatile uint32_t time;
-volatile alarm_id_t motor_drive_alarm;
 
+// Debounce button inputs
 bool valid_trigger() {
     uint32_t now = to_ms_since_boot(get_absolute_time());
     uint32_t diff = now - time;
@@ -44,7 +44,7 @@ void cancel_motor_drive() {
         return;
     }
 
-    printf("Cancel motor drive\n");
+    printf("Canceling motor drive\n");
     motor_cancel_drive();
 }
 
@@ -81,8 +81,8 @@ int main() {
     gpio_set_irq_enabled_with_callback(TRIGGER_BTN_PIN, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
     gpio_set_irq_enabled(CANCEL_TRIGGER_BTN_PIN, GPIO_IRQ_EDGE_RISE, true);
 
-    printf("Starting\n");
-    while (1);
+    printf("Initialized\n");
 
+    while (1);
     return 0;
 }
