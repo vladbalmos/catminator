@@ -7,6 +7,7 @@ pico_sdk_init()
 
 add_executable(catminator
     motor.c
+    sensor.c
     catminator.c
 )
 
@@ -14,4 +15,6 @@ pico_enable_stdio_usb(catminator 0)
 pico_enable_stdio_uart(catminator 1)
 
 # pull in common dependencies
-target_link_libraries(catminator pico_stdlib)
+target_link_libraries(catminator
+    pico_multicore
+    pico_stdlib)

@@ -6,16 +6,48 @@
 
 #include <stdio.h>
 #include "pico/stdlib.h"
-#include "motor.h"
+#include "pico/util/queue.h"
+#include "pico/multicore.h"
+#include "sensor.h"
 
-const uint TRIGGER_BTN_PIN = 16;
-const uint LED_PIN = 17;
-const uint CANCEL_TRIGGER_BTN_PIN = 20;
-
-const uint32_t MOTOR_DRIVE_DELAY = 2000;
 const uint DEBOUNCE_DELAY = 250;
 
+// Pins
+const uint LED_PIN = 17;
+const uint BTN_CANCEL_TRIGGER_PIN = 20;
+const uint SENSOR_POWER_PIN = 13;
+const uint SENSOR_INPUT_PIN = 14;
+const uint SENSOR_REPLY_PIN = 15;
 volatile uint32_t time;
+
+queue_t sensor_request_q;
+queue_t sensor_response_q;
+
+
+void core1_entry() {
+    while (true) {
+        bool request;
+        int64_t response = -1;
+
+        queue_remove_blocking(&sensor_request_q, &request);
+
+        if (!request) {
+            sleep_ms(100);
+            continue;
+        }
+
+        absolute_time_t start = nil_time;
+        absolute_time_t end = nil_time;
+
+        sensor_trigger_echo();
+        sensor_measure_reply(&start, &end);
+
+        if (start != nil_time && end != nil_time) {
+            response = absolute_time_diff_us(start, end);
+        }
+        queue_add_blocking(&sensor_response_q, &response);
+    }
+}
 
 // Debounce button inputs
 bool valid_trigger() {
@@ -30,57 +62,35 @@ bool valid_trigger() {
     return true;
 }
 
-void schedule_motor_drive() {
-    if (!valid_trigger()) {
-        return;
-    }
-
-    motor_schedule_drive(MOTOR_DRIVE_DELAY);
-}
-
-void cancel_motor_drive() {
-    if (!valid_trigger()) {
-        return;
-    }
-
-    motor_cancel_drive();
-}
-
-void gpio_callback(uint gpio, uint32_t events) {
-    if (gpio == TRIGGER_BTN_PIN) {
-        schedule_motor_drive();
-        return;
-    }
-
-    if (gpio == CANCEL_TRIGGER_BTN_PIN) {
-        cancel_motor_drive();
-        return;
-    }
-}
-
 int main() {
-    time = to_ms_since_boot(get_absolute_time());
     stdio_init_all();
 
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
-    gpio_set_drive_strength(LED_PIN, GPIO_DRIVE_STRENGTH_2MA);
+    time = to_ms_since_boot(get_absolute_time());
+    queue_init(&sensor_request_q, sizeof(bool), 1);
+    queue_init(&sensor_response_q, sizeof(int64_t), 1);
 
-    gpio_init(LED_PIN + 1);
-    gpio_set_dir(LED_PIN + 1, GPIO_OUT);
-    gpio_set_drive_strength(LED_PIN + 1, GPIO_DRIVE_STRENGTH_2MA);
+    // GPIO init
+    sensor_init_pins(SENSOR_POWER_PIN, SENSOR_INPUT_PIN, SENSOR_REPLY_PIN);
 
-    gpio_init(TRIGGER_BTN_PIN);
-    gpio_set_dir(TRIGGER_BTN_PIN, GPIO_IN);
-
-    gpio_init(CANCEL_TRIGGER_BTN_PIN);
-    gpio_set_dir(CANCEL_TRIGGER_BTN_PIN, GPIO_IN);
-
-    gpio_set_irq_enabled_with_callback(TRIGGER_BTN_PIN, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
-    gpio_set_irq_enabled(CANCEL_TRIGGER_BTN_PIN, GPIO_IRQ_EDGE_RISE, true);
+    sleep_ms(5);
+    multicore_launch_core1(core1_entry);
+    sleep_ms(10); // Wait a bit for the core to initialize
 
     printf("Initialized\n");
 
-    while (1);
+    while (true) {
+        if (queue_is_full(&sensor_request_q)) {
+            printf("Request queue is full. Sleeping\n");
+            sleep_ms(1000);
+            continue;
+        }
+
+        sensor_toggle_power(true);
+        int distance = sensor_read(&sensor_request_q, &sensor_response_q);
+        printf("Received response: %d \n", distance);
+        sensor_toggle_power(false);
+        sleep_ms(1000);
+    }
+
     return 0;
 }
