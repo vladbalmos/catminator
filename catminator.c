@@ -35,7 +35,6 @@ void schedule_motor_drive() {
         return;
     }
 
-    printf("Scheduling motor drive\n");
     motor_schedule_drive(MOTOR_DRIVE_DELAY);
 }
 
@@ -44,7 +43,6 @@ void cancel_motor_drive() {
         return;
     }
 
-    printf("Canceling motor drive\n");
     motor_cancel_drive();
 }
 
