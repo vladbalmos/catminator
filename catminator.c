@@ -11,8 +11,9 @@
 #include "sensor.h"
 #include "motor.h"
 
+const uint COOL_OFF_PERIOD = 10 * 1000; // ms
 const uint MOTOR_DRIVE_DELAY = 5000;
-const uint DEFAULT_LOOP_SLEEP = 2000;
+const uint DEFAULT_LOOP_SLEEP = 1000;
 const uint MAX_TARGET_DISTANCE = 50; // cm
 
 // Pins
@@ -22,7 +23,7 @@ const uint SENSOR_INPUT_PIN = 14;
 const uint SENSOR_REPLY_PIN = 15;
 const uint MOTOR_UP_PIN = 17;
 const uint MOTOR_DOWN_PIN = 18;
-const uint WARNING_LED_PIN = 19;
+const uint STATUS_LED_PIN = 19;
 
 queue_t sensor_request_q;
 queue_t sensor_response_q;
@@ -73,6 +74,7 @@ int main() {
 
     sensor_init_pins(SENSOR_POWER_PIN, SENSOR_INPUT_PIN, SENSOR_REPLY_PIN);
     motor_init_pins(MOTOR_UP_PIN, MOTOR_DOWN_PIN);
+    status_led_init(STATUS_LED_PIN);
 
     // Enable irq
     gpio_set_irq_enabled_with_callback(BTN_CANCEL_TRIGGER_PIN, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
@@ -82,15 +84,24 @@ int main() {
     sleep_ms(10); // Wait a bit for the core to initialize
 
     printf("Initialized\n");
+    absolute_time_t cool_off = nil_time;
 
     while (true) {
+        if (cool_off != nil_time && absolute_time_diff_us(get_absolute_time(), cool_off) > 0) {
+            printf("Cooling off\n");
+            sleep_ms(DEFAULT_LOOP_SLEEP);
+            continue;
+        }
+
         if (clear_motor_drive_alarm && motor_is_drive_scheduled()) {
             printf("Canceling drive requested\n");
             clear_motor_drive_alarm = false;
             motor_cancel_drive();
+            cool_off = make_timeout_time_ms(COOL_OFF_PERIOD);
             sleep_ms(DEFAULT_LOOP_SLEEP);
             continue;
         }
+
 
         if (queue_is_full(&sensor_request_q)) {
             printf("Request queue is full. Sleeping\n");
@@ -115,7 +126,7 @@ int main() {
 
         if (distance < MAX_TARGET_DISTANCE && !motor_is_drive_scheduled()) {
             motor_schedule_drive(MOTOR_DRIVE_DELAY);
-            printf("Target detected. Scheduling motor drive\n");
+            printf("Target aquired. Scheduling motor drive\n");
         } else if (distance >= MAX_TARGET_DISTANCE)  {
             if (motor_is_drive_scheduled()) {
                 printf("Target lost. Canceling motor drive\n");

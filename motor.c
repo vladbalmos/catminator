@@ -34,6 +34,7 @@ void motor_init_pins(uint upin, uint dpin) {
 int64_t start_drive_motor(alarm_id_t id, void *user_data) {
     if (!motor_running) {
         motor_running = true;
+        status_led_toggle(true);
     }
     motor_state *state = (motor_state *) user_data;
     gpio_put(state->pin, 1);
@@ -54,6 +55,7 @@ int64_t stop_drive_motor(alarm_id_t id, void *user_data) {
     mstate = NULL;
     motor_drive_scheduled = false;
     motor_running = false;
+    status_led_toggle(false);
     return 0;
 }
 
@@ -70,12 +72,12 @@ void motor_schedule_drive(uint delay) {
     mstate->pin = up_pin;
     motor_drive_scheduled = true;
     motor_drive_up_alarm = add_alarm_in_ms(delay, start_drive_motor, (void *)mstate, false);
-    status_led_show_countdown(delay);
 
     if (motor_drive_up_alarm == -1) {
         // TODO: flash error LED
         return;
     }
+    status_led_toggle(true);
 }
 
 void motor_cancel_drive() {
@@ -88,6 +90,7 @@ void motor_cancel_drive() {
     cancel_alarm(motor_drive_up_alarm);
     motor_drive_up_alarm = 0;
     motor_drive_scheduled = false;
+    status_led_toggle(false);
 }
 
 bool motor_is_running() {
