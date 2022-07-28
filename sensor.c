@@ -37,6 +37,10 @@ int sensor_read(queue_t *in_q, queue_t *out_q) {
     queue_add_blocking(in_q, &request);
     queue_remove_blocking(out_q, &sensor_response);
 
+    if (sensor_response < 0) {
+        return -1;
+    }
+
     int64_t response = sensor_response / 58;
     return (int) response;
 }

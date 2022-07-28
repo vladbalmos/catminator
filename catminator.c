@@ -9,19 +9,24 @@
 #include "pico/util/queue.h"
 #include "pico/multicore.h"
 #include "sensor.h"
+#include "motor.h"
 
-const uint DEBOUNCE_DELAY = 250;
+const uint MOTOR_DRIVE_DELAY = 5000;
+const uint DEFAULT_LOOP_SLEEP = 2000;
+const uint MAX_TARGET_DISTANCE = 50; // cm
 
 // Pins
-const uint LED_PIN = 17;
-const uint BTN_CANCEL_TRIGGER_PIN = 20;
+const uint BTN_CANCEL_TRIGGER_PIN = 16;
 const uint SENSOR_POWER_PIN = 13;
 const uint SENSOR_INPUT_PIN = 14;
 const uint SENSOR_REPLY_PIN = 15;
-volatile uint32_t time;
+const uint MOTOR_UP_PIN = 17;
+const uint MOTOR_DOWN_PIN = 18;
+const uint WARNING_LED_PIN = 19;
 
 queue_t sensor_request_q;
 queue_t sensor_response_q;
+bool clear_motor_drive_alarm = false;
 
 
 void core1_entry() {
@@ -49,28 +54,28 @@ void core1_entry() {
     }
 }
 
-// Debounce button inputs
-bool valid_trigger() {
-    uint32_t now = to_ms_since_boot(get_absolute_time());
-    uint32_t diff = now - time;
-
-    if (diff < DEBOUNCE_DELAY) {
-        return false;
+void gpio_callback(uint gpio, uint32_t events) {
+    if (gpio == BTN_CANCEL_TRIGGER_PIN) {
+        clear_motor_drive_alarm = true;
+        return;
     }
-
-    time = now;
-    return true;
 }
 
 int main() {
     stdio_init_all();
 
-    time = to_ms_since_boot(get_absolute_time());
     queue_init(&sensor_request_q, sizeof(bool), 1);
     queue_init(&sensor_response_q, sizeof(int64_t), 1);
 
     // GPIO init
+    gpio_init(BTN_CANCEL_TRIGGER_PIN);
+    gpio_set_dir(BTN_CANCEL_TRIGGER_PIN, GPIO_IN);
+
     sensor_init_pins(SENSOR_POWER_PIN, SENSOR_INPUT_PIN, SENSOR_REPLY_PIN);
+    motor_init_pins(MOTOR_UP_PIN, MOTOR_DOWN_PIN);
+
+    // Enable irq
+    gpio_set_irq_enabled_with_callback(BTN_CANCEL_TRIGGER_PIN, GPIO_IRQ_EDGE_RISE, true, &gpio_callback);
 
     sleep_ms(5);
     multicore_launch_core1(core1_entry);
@@ -79,17 +84,45 @@ int main() {
     printf("Initialized\n");
 
     while (true) {
+        if (clear_motor_drive_alarm && motor_is_drive_scheduled()) {
+            printf("Canceling drive requested\n");
+            clear_motor_drive_alarm = false;
+            motor_cancel_drive();
+            sleep_ms(DEFAULT_LOOP_SLEEP);
+            continue;
+        }
+
         if (queue_is_full(&sensor_request_q)) {
             printf("Request queue is full. Sleeping\n");
-            sleep_ms(1000);
+            sleep_ms(DEFAULT_LOOP_SLEEP);
+            continue;
+        }
+
+        if (motor_is_running()) {
+            sleep_ms(DEFAULT_LOOP_SLEEP);
             continue;
         }
 
         sensor_toggle_power(true);
         int distance = sensor_read(&sensor_request_q, &sensor_response_q);
-        printf("Received response: %d \n", distance);
         sensor_toggle_power(false);
-        sleep_ms(1000);
+        printf("Received response: %d \n", distance);
+
+        if (distance < 0) {
+            sleep_ms(DEFAULT_LOOP_SLEEP);
+            continue;
+        }
+
+        if (distance < MAX_TARGET_DISTANCE && !motor_is_drive_scheduled()) {
+            motor_schedule_drive(MOTOR_DRIVE_DELAY);
+            printf("Target detected. Scheduling motor drive\n");
+        } else if (distance >= MAX_TARGET_DISTANCE)  {
+            if (motor_is_drive_scheduled()) {
+                printf("Target lost. Canceling motor drive\n");
+                motor_cancel_drive();
+            }
+        }
+        sleep_ms(DEFAULT_LOOP_SLEEP);
     }
 
     return 0;

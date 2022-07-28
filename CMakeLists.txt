@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 add_executable(catminator
+    utils.c
     motor.c
     sensor.c
     catminator.c
