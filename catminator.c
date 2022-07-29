@@ -14,13 +14,13 @@
 const uint COOL_OFF_PERIOD = 10 * 1000; // ms
 const uint MOTOR_DRIVE_DELAY = 5000;
 const uint DEFAULT_LOOP_SLEEP = 1000;
-const uint MAX_TARGET_DISTANCE = 50; // cm
+const uint MAX_TARGET_DISTANCE = 100; // cm
 
 // Pins
-const uint BTN_CANCEL_TRIGGER_PIN = 16;
 const uint SENSOR_POWER_PIN = 13;
 const uint SENSOR_INPUT_PIN = 14;
 const uint SENSOR_REPLY_PIN = 15;
+const uint BTN_CANCEL_TRIGGER_PIN = 16;
 const uint MOTOR_UP_PIN = 17;
 const uint MOTOR_DOWN_PIN = 18;
 const uint STATUS_LED_PIN = 19;

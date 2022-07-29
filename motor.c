@@ -5,10 +5,12 @@
 
 typedef struct {
     uint pin;
+    uint drive_duration;
 } motor_state;
 
-const uint MOTOR_DRIVE_DURATION = 1000;
-const uint MOTOR_PAUSE_BEFORE_REVERSAL = 100;
+const uint MOTOR_DRIVE_DURATION = 690;
+const uint MOTOR_DRIVE_REVERSAL_DURATION = 200;
+const uint MOTOR_PAUSE_BEFORE_REVERSAL = 200;
 
 bool motor_drive_scheduled = false;
 bool motor_running = false;
@@ -38,7 +40,7 @@ int64_t start_drive_motor(alarm_id_t id, void *user_data) {
     }
     motor_state *state = (motor_state *) user_data;
     gpio_put(state->pin, 1);
-    add_alarm_in_ms(MOTOR_DRIVE_DURATION, stop_drive_motor, user_data, false);
+    add_alarm_in_ms(state->drive_duration, stop_drive_motor, user_data, false);
     return 0;
 }
 
@@ -48,6 +50,7 @@ int64_t stop_drive_motor(alarm_id_t id, void *user_data) {
 
     if (state->pin == up_pin) {
         state->pin = down_pin;
+        state->drive_duration = MOTOR_DRIVE_REVERSAL_DURATION;
         add_alarm_in_ms(MOTOR_PAUSE_BEFORE_REVERSAL, start_drive_motor, (void *)state, false);
         return 0;
     }
@@ -70,6 +73,7 @@ void motor_schedule_drive(uint delay) {
 
     mstate = malloc(sizeof(motor_state));
     mstate->pin = up_pin;
+    mstate->drive_duration = MOTOR_DRIVE_DURATION;
     motor_drive_scheduled = true;
     motor_drive_up_alarm = add_alarm_in_ms(delay, start_drive_motor, (void *)mstate, false);
 
