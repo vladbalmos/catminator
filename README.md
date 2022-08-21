@@ -1,6 +1,8 @@
 # About
 This is a work in progress project. 
+
 Components: 
+
     - Distance sensor (HC-SR04)
     - AirWick Freshmatic (Code: ARW00171)
     - Raspberry Pico
