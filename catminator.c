@@ -97,6 +97,12 @@ void measure_freqs(void) {
 
 int main() {
     stdio_init_all();
+
+    if (!debug_mode()) {
+        set_sys_clock_48mhz();
+        clock_stop(clk_peri);
+        clock_stop(clk_usb);
+    }
     /*set_sys_clock_khz(18 * 1000, true);*/
 
     // todo: picoprobe without usb clock
