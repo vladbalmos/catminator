@@ -3,14 +3,14 @@
 #include "motor.h"
 #include "utils.h"
 
+#define MOTOR_DRIVE_DURATION 690
+#define MOTOR_DRIVE_REVERSAL_DURATION 200
+#define MOTOR_PAUSE_BEFORE_REVERSAL 200
+
 typedef struct {
     uint pin;
     uint drive_duration;
 } motor_state;
-
-const uint MOTOR_DRIVE_DURATION = 690;
-const uint MOTOR_DRIVE_REVERSAL_DURATION = 200;
-const uint MOTOR_PAUSE_BEFORE_REVERSAL = 200;
 
 bool motor_drive_scheduled = false;
 bool motor_running = false;
@@ -18,7 +18,6 @@ uint up_pin;
 uint down_pin;
 alarm_id_t motor_drive_up_alarm = 0;
 motor_state* mstate;
-
 
 void motor_init_pins(uint upin, uint dpin) {
     up_pin = upin;
@@ -39,8 +38,11 @@ int64_t start_drive_motor(alarm_id_t id, void *user_data) {
         status_led_toggle(true);
     }
     motor_state *state = (motor_state *) user_data;
+
+    DEBUG("Driving motor on PIN %d\n", state->pin);
     gpio_put(state->pin, 1);
     add_alarm_in_ms(state->drive_duration, stop_drive_motor, user_data, false);
+
     return 0;
 }
 

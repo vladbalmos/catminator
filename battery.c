@@ -1,5 +1,6 @@
 #include "hardware/adc.h"
 #include "battery.h"
+#include "utils.h"
 
 #define ADC_CONVERSION_FACTOR 3.3f / (1 << 12)
 
@@ -18,7 +19,7 @@ void init_battery_readings() {
 bool low_battery() {
     uint16_t result = adc_read();
     float voltage = result * ADC_CONVERSION_FACTOR * 2 + .15; // .15 accounts for resistor divider inaccuracy
-    printf("Raw value: 0x%03x, voltage: %f V\n", result, voltage);
+    DEBUG("Battery voltage: %f V\n", voltage);
     return voltage < LOW_VOLTAGE_THRESHOLD;
 }
 
