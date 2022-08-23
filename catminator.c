@@ -8,8 +8,14 @@
 #include "pico/stdlib.h"
 #include "pico/util/queue.h"
 #include "pico/multicore.h"
+#include "hardware/pll.h"
+#include "hardware/clocks.h"
+#include "hardware/structs/pll.h"
+#include "hardware/structs/clocks.h"
+#include "utils.h"
 #include "sensor.h"
 #include "motor.h"
+#include "battery.h"
 
 const uint COOL_OFF_PERIOD = 10 * 1000; // ms
 const uint MOTOR_DRIVE_DELAY = 5000;
@@ -27,6 +33,7 @@ const uint STATUS_LED_PIN = 19;
 
 queue_t sensor_request_q;
 queue_t sensor_response_q;
+absolute_time_t cool_off;
 bool clear_motor_drive_alarm = false;
 
 
@@ -55,18 +62,61 @@ void core1_entry() {
     }
 }
 
+bool is_cooling_off() {
+    return cool_off != nil_time && absolute_time_diff_us(get_absolute_time(), cool_off) > 0;
+}
+
 void gpio_callback(uint gpio, uint32_t events) {
-    if (gpio == BTN_CANCEL_TRIGGER_PIN) {
+    if (gpio == BTN_CANCEL_TRIGGER_PIN && !is_cooling_off()) {
         clear_motor_drive_alarm = true;
         return;
     }
 }
 
+void measure_freqs(void) {
+    uint f_pll_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_PLL_SYS_CLKSRC_PRIMARY);
+    uint f_pll_usb = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_PLL_USB_CLKSRC_PRIMARY);
+    uint f_rosc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_ROSC_CLKSRC);
+    uint f_clk_sys = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_SYS);
+    uint f_clk_peri = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_PERI);
+    uint f_clk_usb = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_USB);
+    uint f_clk_adc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_ADC);
+    uint f_clk_rtc = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_RTC);
+
+    printf("pll_sys  = %dkHz\n", f_pll_sys);
+    printf("pll_usb  = %dkHz\n", f_pll_usb);
+    printf("rosc     = %dkHz\n", f_rosc);
+    printf("clk_sys  = %dkHz\n", f_clk_sys);
+    printf("clk_peri = %dkHz\n", f_clk_peri);
+    printf("clk_usb  = %dkHz\n", f_clk_usb);
+    printf("clk_adc  = %dkHz\n", f_clk_adc);
+    printf("clk_rtc  = %dkHz\n", f_clk_rtc);
+}
+
 int main() {
     stdio_init_all();
+    /*set_sys_clock_khz(18 * 1000, true);*/
+
+    // todo: picoprobe without usb clock
+    /*clock_stop(clk_usb);*/
+    /*pll_deinit(pll_usb);*/
+
+    /*stdio_init_all();*/
+    /*setup_default_uart();*/
+
+#ifdef DEBUG_MODE
+    printf("Debug mode\n");
+#endif
+    init_battery_readings();
 
     queue_init(&sensor_request_q, sizeof(bool), 1);
     queue_init(&sensor_response_q, sizeof(int64_t), 1);
+
+    bool default_led_state = true;
+    if (debug_mode()) {
+        gpio_init(PICO_DEFAULT_LED_PIN);
+        gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
+    }
 
     // GPIO init
     gpio_init(BTN_CANCEL_TRIGGER_PIN);
@@ -84,14 +134,25 @@ int main() {
     sleep_ms(10); // Wait a bit for the core to initialize
 
     printf("Initialized\n");
-    absolute_time_t cool_off = nil_time;
+    cool_off = nil_time;
 
     while (true) {
-        if (cool_off != nil_time && absolute_time_diff_us(get_absolute_time(), cool_off) > 0) {
+        measure_freqs();
+        if (low_battery()) {
+            panic("Please recharge battery\n");
+        }
+
+        if (debug_mode) {
+            gpio_put(PICO_DEFAULT_LED_PIN, default_led_state);
+            default_led_state = !default_led_state;
+        }
+        if (is_cooling_off()) {
             printf("Cooling off\n");
             sleep_ms(DEFAULT_LOOP_SLEEP);
             continue;
         }
+
+        cool_off = nil_time;
 
         if (clear_motor_drive_alarm && motor_is_drive_scheduled()) {
             printf("Canceling drive requested\n");

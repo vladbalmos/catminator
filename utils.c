@@ -15,3 +15,6 @@ void status_led_toggle(bool state) {
     gpio_put(led_pin, state);
 }
 
+bool debug_mode() {
+    return false;
+}

@@ -10,3 +10,17 @@ Components:
 The Pico uses the distance sensor to detect any objects/animals/human (preferably a cat) then drives the AirWick's motors (TP7 & TP8) to spray the detected object in the hopes to scare it away.
 
 Thank you BigClive for reverse engineering the AirWick. [https://www.youtube.com/watch?v=4OC4U6FiJus](https://www.youtube.com/watch?v=4OC4U6FiJus).
+
+## Memento
+
+Monitoring serial port: 
+
+    minicom -o -D /dev/ttyACM0 -b 115200
+
+Building: 
+
+    make build
+
+Deploy: 
+
+    make install
