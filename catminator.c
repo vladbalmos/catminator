@@ -30,6 +30,7 @@
 #define MOTOR_UP_PIN 17
 #define MOTOR_DOWN_PIN 18
 #define STATUS_LED_PIN 19
+#define BOOST_5V_ENABLE_PIN 11
 
 queue_t sensor_request_q;
 queue_t sensor_response_q;
@@ -95,22 +96,24 @@ void measure_freqs(void) {
     printf("------------------- END FREQ---------\n");
 }
 
+void stop() {
+    gpio_put(BOOST_5V_ENABLE_PIN, 0);
+    gpio_put(SENSOR_POWER_PIN, 0);
+    if (debug_mode) {
+        gpio_put(PICO_DEFAULT_LED_PIN, 0);
+    }
+}
+
 int main() {
+    bool cool_off_after_motor_drive = false;
+
     stdio_init_all();
 
     if (!debug_mode()) {
-        set_sys_clock_48mhz();
+        set_sys_clock_pll(756 * MHZ, 7, 6);
         clock_stop(clk_peri);
         clock_stop(clk_usb);
     }
-    /*set_sys_clock_khz(18 * 1000, true);*/
-
-    // todo: picoprobe without usb clock
-    /*clock_stop(clk_usb);*/
-    /*pll_deinit(pll_usb);*/
-
-    /*stdio_init_all();*/
-    /*setup_default_uart();*/
 
     init_battery_readings();
 
@@ -127,6 +130,10 @@ int main() {
     gpio_init(BTN_CANCEL_TRIGGER_PIN);
     gpio_set_dir(BTN_CANCEL_TRIGGER_PIN, GPIO_IN);
 
+    gpio_init(BOOST_5V_ENABLE_PIN);
+    gpio_set_dir(BOOST_5V_ENABLE_PIN, GPIO_OUT);
+    gpio_put(BOOST_5V_ENABLE_PIN, 1);
+
     sensor_init_pins(SENSOR_POWER_PIN, SENSOR_INPUT_PIN, SENSOR_REPLY_PIN);
     motor_init_pins(MOTOR_UP_PIN, MOTOR_DOWN_PIN);
     status_led_init(STATUS_LED_PIN);
@@ -142,11 +149,18 @@ int main() {
     cool_off = nil_time;
 
     while (true) {
+        if (cool_off_after_motor_drive && !motor_is_running()) {
+            cool_off = make_timeout_time_ms(COOL_OFF_PERIOD);
+            cool_off_after_motor_drive = false;
+            DEBUG("Cooling off after motor drive\n");
+        }
+
         if (debug_mode()) {
             measure_freqs();
         }
 
         if (low_battery()) {
+            stop();
             panic("Please recharge battery\n");
         }
 
@@ -180,6 +194,7 @@ int main() {
 
         if (motor_is_running()) {
             sleep_ms(DEFAULT_LOOP_SLEEP);
+            cool_off_after_motor_drive = true;
             continue;
         }
 
