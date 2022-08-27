@@ -10,7 +10,7 @@ Components:
     - 3.7V Lithium battery
     - 3V to 5V DC boost IC
 
-For the full components list see the circuit schematic [docs/schematic.png](https://github.com/vladbalmos/catminator/blob/master/docs/schemaic.png).  
+For the full components list see the circuit schematic [docs/schematic.png](https://github.com/vladbalmos/catminator/blob/master/docs/schematic.png).  
 To see which points on the AirWick's PCB need to be connected to the Pico see [docs/airwick-connections.png](https://github.com/vladbalmos/catminator/blob/master/docs/airwick-connections.png).
 
 Thank you BigClive for reverse engineering the AirWick. [https://www.youtube.com/watch?v=4OC4U6FiJus](https://www.youtube.com/watch?v=4OC4U6FiJus).
