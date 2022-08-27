@@ -1,15 +1,20 @@
 # About
-This is a work in progress project. 
+This is an educational Raspberry Pico project.  
+The Pico makes use of a distance sensor to detect any objects/animals/human (preferably a cat) then drives the motors (TP7 & TP8) of an AirWick unit to spray the detected object in the hopes to scare it away.
 
 Components: 
 
     - Distance sensor (HC-SR04)
     - AirWick Freshmatic (Code: ARW00171)
     - Raspberry Pico
+    - 3.7V Lithium battery
+    - 3V to 5V DC boost IC
 
-The Pico uses the distance sensor to detect any objects/animals/human (preferably a cat) then drives the AirWick's motors (TP7 & TP8) to spray the detected object in the hopes to scare it away.
+For the full components list see the circuit schematic [docs/schematic.png](https://github.com/vladbalmos/catminator/blob/master/docs/schemaic.png).  
+To see which points on the AirWick's PCB need to be connected to the Pico see [docs/airwick-connections.png](https://github.com/vladbalmos/catminator/blob/master/docs/airwick-connections.png).
 
 Thank you BigClive for reverse engineering the AirWick. [https://www.youtube.com/watch?v=4OC4U6FiJus](https://www.youtube.com/watch?v=4OC4U6FiJus).
+
 
 ## Memento
 
@@ -19,8 +24,10 @@ Monitoring serial port:
 
 Building: 
 
-    make build
+    make debug #debug version
+    make build #release version
 
 Deploy: 
 
-    make install
+    make install-debug #debug version
+    make install #release version

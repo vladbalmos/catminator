@@ -4,10 +4,9 @@
 
 #define ADC_CONVERSION_FACTOR 3.3f / (1 << 12)
 
-const uint ADC_PIN = 26;
-const uint ADC_INPUT = 0;
-const float LOW_VOLTAGE_THRESHOLD = 3.2;
-/*const float LOW_VOLTAGE_THRESHOLD = 4.78;*/
+#define ADC_PIN 26
+#define ADC_INPUT 0
+#define LOW_VOLTAGE_THRESHOLD 3.2
 
 void init_battery_readings() {
     adc_init();
