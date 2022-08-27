@@ -15,6 +15,12 @@ To see which points on the AirWick's PCB need to be connected to the Pico see [d
 
 Thank you BigClive for reverse engineering the AirWick. [https://www.youtube.com/watch?v=4OC4U6FiJus](https://www.youtube.com/watch?v=4OC4U6FiJus).
 
+Power usage:  
+
+    - ~90ma (with motors active)
+    - ~25ma (while scanning for targets)
+    - ~12ma (standby)
+
 
 ## Memento
 
