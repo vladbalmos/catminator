@@ -10,6 +10,7 @@
 #include "pico/multicore.h"
 #include "hardware/pll.h"
 #include "hardware/clocks.h"
+#include "hardware/xosc.h"
 #include "hardware/structs/pll.h"
 #include "hardware/structs/clocks.h"
 #include "utils.h"
@@ -102,6 +103,28 @@ void stop() {
     if (debug_mode) {
         gpio_put(PICO_DEFAULT_LED_PIN, 0);
     }
+
+    clock_configure(clk_ref,
+                    CLOCKS_CLK_REF_CTRL_SRC_VALUE_ROSC_CLKSRC_PH,
+                    0,
+                    1 * MHZ,
+                    1 * MHZ);
+    clock_configure(clk_sys,
+                    CLOCKS_CLK_SYS_CTRL_SRC_VALUE_CLK_REF,
+                    0,
+                    1 * MHZ,
+                    1 * MHZ);
+    // Stop clocks
+    xosc_disable();
+    clock_stop(clk_peri);
+    clock_stop(clk_usb);
+    clock_stop(clk_adc);
+    clock_stop(clk_rtc);
+    pll_deinit(pll_sys);
+    pll_deinit(pll_usb);
+    clock_stop(clk_sys);
+    clock_stop(clk_ref);
+    panic("Stoping\n");
 }
 
 int main() {
@@ -160,8 +183,8 @@ int main() {
         }
 
         if (low_battery()) {
+            DEBUG("Please recharge battery\n");
             stop();
-            panic("Please recharge battery\n");
         }
 
         if (debug_mode) {
