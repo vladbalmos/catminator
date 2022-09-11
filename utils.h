@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2022 Vlad Balmos
+ *
+ * SPDX-License-Identifier: MIT License
+ */
+
 #ifdef DEBUG_MODE
     #define DEBUG(...) printf(__VA_ARGS__);
 #else

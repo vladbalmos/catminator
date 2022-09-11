@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2022 Vlad Balmos
+ *
+ * SPDX-License-Identifier: MIT License
+ */
+
 #include "hardware/adc.h"
 #include "battery.h"
 #include "utils.h"

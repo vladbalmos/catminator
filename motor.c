@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2022 Vlad Balmos
+ *
+ * SPDX-License-Identifier: MIT License
+ */
+
 #include <stdlib.h>
 #include "pico/stdlib.h"
 #include "motor.h"

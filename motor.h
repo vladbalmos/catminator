@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2022 Vlad Balmos
+ *
+ * SPDX-License-Identifier: MIT License
+ */
+
 void motor_init_pins(uint upin, uint dpin);
 bool motor_is_drive_scheduled();
 bool motor_is_running();
