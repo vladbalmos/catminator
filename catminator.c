@@ -100,7 +100,7 @@ void measure_freqs(void) {
 void stop() {
     gpio_put(BOOST_5V_ENABLE_PIN, 0);
     gpio_put(SENSOR_POWER_PIN, 0);
-    if (debug_mode) {
+    if (debug_mode()) {
         gpio_put(PICO_DEFAULT_LED_PIN, 0);
     }
 
@@ -187,7 +187,7 @@ int main() {
             stop();
         }
 
-        if (debug_mode) {
+        if (debug_mode()) {
             gpio_put(PICO_DEFAULT_LED_PIN, default_led_state);
             default_led_state = !default_led_state;
         }
