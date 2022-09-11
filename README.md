@@ -17,7 +17,7 @@ Thank you BigClive for reverse engineering the AirWick. [https://www.youtube.com
 
 Power usage:  
 
-    - ~90ma (with motors active)
+    - ~180ma (with motors active)
     - ~25ma (while scanning for targets)
     - ~12ma (standby)
 
