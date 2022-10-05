@@ -21,7 +21,7 @@
 #define COOL_OFF_PERIOD 10 * 1000 // seconds
 #define MOTOR_DRIVE_DELAY 5000
 #define DEFAULT_LOOP_SLEEP 1000
-#define MAX_TARGET_DISTANCE 100 // cm
+#define MAX_TARGET_DISTANCE 50 // cm
 
 // Pins
 #define SENSOR_POWER_PIN 13
